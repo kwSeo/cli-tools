@@ -80,7 +80,9 @@ func (ag *ActuatorGui) Layout(g *gocui.Gui) error {
 
 func (ag *ActuatorGui) selectEndpoint(g *gocui.Gui, v *gocui.View) error {
 	lines := v.ViewBufferLines()
-	_, y := v.Cursor()
+	_, oy := v.Origin()
+	_, cy := v.Cursor()
+	y := cy + oy
 	if y >= len(lines) {
 		return nil
 	}
