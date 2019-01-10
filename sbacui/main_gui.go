@@ -6,9 +6,13 @@ import (
 	"github.com/kwseo/cli-tools/sbacui/font"
 	"log"
 	"sort"
+	"strconv"
 )
 
-var endpointFuncMap = make(map[string]EndpointFunc)
+var (
+	sideMenuStack []string
+	endpointFuncMap = make(map[string]EndpointFunc)
+)
 
 type EndpointFunc func(*gocui.Gui, *ActuatorLink, map[string]interface{}) error
 
@@ -46,6 +50,7 @@ func (ag *ActuatorGui) Layout(g *gocui.Gui) error {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
+
 		v.Highlight = true
 		v.SelFgColor = gocui.ColorBlack
 		v.SelBgColor = gocui.ColorGreen
@@ -53,15 +58,15 @@ func (ag *ActuatorGui) Layout(g *gocui.Gui) error {
 		for _, endpoint := range ag.Endpoints {
 			fmt.Fprintln(v, endpoint)
 		}
+
+		g.SetCurrentView("side")
+		g.SetViewOnTop("side")
 	}
 
-	if v, err := g.SetView("sideDetail", 0, 2, maxX/100*30, maxY); err != nil {
-		if err != gocui.ErrUnknownView {
+	for _, name := range sideMenuStack {
+		if _, err := g.SetView(name, 0, 2, maxX/100*30, maxY); err != nil {
 			return err
 		}
-		v.Highlight = true
-		v.SelFgColor = gocui.ColorBlack
-		v.SelBgColor = gocui.ColorGreen
 	}
 
 	if v, err := g.SetView("content", maxX/100*30, 2, maxX-1, maxY); err != nil {
@@ -73,8 +78,6 @@ func (ag *ActuatorGui) Layout(g *gocui.Gui) error {
 		fmt.Fprintln(v, "this is content")
 	}
 
-	g.SetCurrentView("side")
-	g.SetViewOnTop("side")
 	return nil
 }
 
@@ -105,7 +108,7 @@ func (ag *ActuatorGui) selectEndpoint(g *gocui.Gui, v *gocui.View) error {
 }
 
 
-func (ag *ActuatorGui) cursorUp(g *gocui.Gui, v *gocui.View) error {
+func cursorUp(g *gocui.Gui, v *gocui.View) error {
 	ox, oy := v.Origin()
 	x, y := v.Cursor()
 	if err := v.SetCursor(x, y-1); err != nil && oy > 0 {
@@ -116,7 +119,7 @@ func (ag *ActuatorGui) cursorUp(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
-func (ag *ActuatorGui) cursorDown(g *gocui.Gui, v *gocui.View) error {
+func cursorDown(g *gocui.Gui, v *gocui.View) error {
 	x, y := v.Cursor()
 	if err := v.SetCursor(x, y+1); err != nil {
 		ox, oy := v.Origin()
@@ -127,22 +130,66 @@ func (ag *ActuatorGui) cursorDown(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
+func (ag *ActuatorGui) keybindings(g *gocui.Gui) error {
+	keybind(g, "", gocui.KeyCtrlC, gocui.ModNone, quit)
+	keybind(g, "side", gocui.KeyEnter, gocui.ModNone, ag.selectEndpoint)
+	keybind(g, "side", gocui.KeyArrowDown, gocui.ModNone, cursorDown)
+	keybind(g, "side", gocui.KeyArrowUp, gocui.ModNone, cursorUp)
+
+	return nil
+}
+
+func quit(g *gocui.Gui, v *gocui.View) error {
+	return gocui.ErrQuit
+}
+
 func keybind(g *gocui.Gui, name string, key interface{}, mod gocui.Modifier, handler func(*gocui.Gui, *gocui.View) error) {
 	if err := g.SetKeybinding(name, key, mod, handler); err != nil {
 		log.Panicln(err)
 	}
 }
 
-func (ag *ActuatorGui) keybindings(g *gocui.Gui) error {
-	keybind(g, "", gocui.KeyCtrlC, gocui.ModNone, quit)
-	keybind(g, "side", gocui.KeyArrowDown, gocui.ModNone, ag.cursorDown)
-	keybind(g, "side", gocui.KeyArrowUp, gocui.ModNone, ag.cursorUp)
-	keybind(g, "side", gocui.KeyEnter, gocui.ModNone, ag.selectEndpoint)
+func pushSideMenu(g *gocui.Gui) (*gocui.View, error) {
+	size := len(sideMenuStack)
+	name := "side" + strconv.Itoa(size)
+	sideMenuStack = append(sideMenuStack, name)
+	maxX, maxY := g.Size()
+	v, err := g.SetView(name, 0, 2, maxX/100*30, maxY)
+	if err != nil {
+		if err != gocui.ErrUnknownView {
+			return nil, err
+		}
+
+		v.Highlight = true
+		v.SelFgColor = gocui.ColorBlack
+		v.SelBgColor = gocui.ColorGreen
+
+		keybind(g, name, gocui.KeyArrowDown, gocui.ModNone, cursorDown)
+		keybind(g, name, gocui.KeyArrowUp, gocui.ModNone, cursorUp)
+
+		if _, err := g.SetCurrentView(name); err != nil {
+			return nil, err
+		}
+		if _, err := g.SetViewOnTop(name); err != nil {
+			return nil, err
+		}
+	}
+	return v, nil
+}
+
+func popSideMenu(g *gocui.Gui) error {
+	top := len(sideMenuStack)
+	name := sideMenuStack[top]
+	err := g.DeleteView(name)
+	if err != nil {
+		return err
+	}
+	sideMenuStack = sideMenuStack[:top]
 	return nil
 }
 
-func quit(g *gocui.Gui, v *gocui.View) error {
-	return gocui.ErrQuit
+func currentSideMenu(g *gocui.Gui) (*gocui.View, error) {
+	return g.View(sideMenuStack[len(sideMenuStack)-1])
 }
 
 func start(act *Actuator) {
