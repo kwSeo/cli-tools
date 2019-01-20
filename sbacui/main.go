@@ -7,12 +7,20 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 )
 
-var baseUrlPtr = flag.String(
+var (
+	baseUrlPtr = flag.String(
 	"baseUrl",
 	"http://localhost:8080/actuator",
 	"base URL of Spring Boot Actuator(default: http://localhost:8080/actuator)",
+	)
+	logFilePtr = flag.String(
+		"logFile",
+		"",
+		"path of log file for debugging",
+	)
 )
 
 type ActuatorLink struct {
@@ -26,9 +34,22 @@ type Actuator struct {
 
 func main() {
 	flag.Parse()
-	fmt.Printf("BaseURL=%s\n", *baseUrlPtr)
+	baseUrl := *baseUrlPtr
+	logFile := *logFilePtr
+	fmt.Println("BaseURL =", baseUrl)
+	fmt.Println("logPath =", logFile)
 
-	resp, err := http.Get(*baseUrlPtr)
+	if logFile != "" {
+		file, err := os.OpenFile(logFile, os.O_CREATE | os.O_APPEND | os.O_RDWR, os.ModePerm)
+		if err != nil {
+			log.Panicln(err)
+		}
+		defer file.Close()
+		log.SetOutput(file)
+		log.Println("init logFile")
+	}
+
+	resp, err := http.Get(baseUrl)
 	if err != nil {
 		log.Panicln(err)
 	}
