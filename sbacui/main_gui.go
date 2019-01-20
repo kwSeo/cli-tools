@@ -9,8 +9,10 @@ import (
 	"strconv"
 )
 
+const sideView = "side"
+
 var (
-	sideMenuStack []string
+	sideMenuStack = []string{sideView}
 	endpointFuncMap = make(map[string]EndpointFunc)
 )
 
@@ -46,7 +48,7 @@ func (ag *ActuatorGui) Layout(g *gocui.Gui) error {
 		fmt.Fprintln(v, title)
 	}
 
-	if v, err := g.SetView("side", 0, 2, maxX/100*30, maxY); err != nil {
+	if v, err := g.SetView(sideView, 0, 2, maxX/100*30, maxY); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
@@ -59,8 +61,8 @@ func (ag *ActuatorGui) Layout(g *gocui.Gui) error {
 			fmt.Fprintln(v, endpoint)
 		}
 
-		g.SetCurrentView("side")
-		g.SetViewOnTop("side")
+		g.SetCurrentView(sideView)
+		g.SetViewOnTop(sideView)
 	}
 
 	for _, name := range sideMenuStack {
@@ -132,10 +134,9 @@ func cursorDown(g *gocui.Gui, v *gocui.View) error {
 
 func (ag *ActuatorGui) keybindings(g *gocui.Gui) error {
 	keybind(g, "", gocui.KeyCtrlC, gocui.ModNone, quit)
-	keybind(g, "side", gocui.KeyEnter, gocui.ModNone, ag.selectEndpoint)
-	keybind(g, "side", gocui.KeyArrowDown, gocui.ModNone, cursorDown)
-	keybind(g, "side", gocui.KeyArrowUp, gocui.ModNone, cursorUp)
-
+	keybind(g, sideView, gocui.KeyEnter, gocui.ModNone, ag.selectEndpoint)
+	keybind(g, sideView, gocui.KeyArrowDown, gocui.ModNone, cursorDown)
+	keybind(g, sideView, gocui.KeyArrowUp, gocui.ModNone, cursorUp)
 	return nil
 }
 
@@ -148,10 +149,13 @@ func keybind(g *gocui.Gui, name string, key interface{}, mod gocui.Modifier, han
 		log.Panicln(err)
 	}
 }
+func backSideView(g *gocui.Gui, v *gocui.View) error {
+	return popSideMenu(g)
+}
 
 func pushSideMenu(g *gocui.Gui) (*gocui.View, error) {
 	size := len(sideMenuStack)
-	name := "side" + strconv.Itoa(size)
+	name := sideView + strconv.Itoa(size)
 	sideMenuStack = append(sideMenuStack, name)
 	maxX, maxY := g.Size()
 	v, err := g.SetView(name, 0, 2, maxX/100*30, maxY)
@@ -166,6 +170,7 @@ func pushSideMenu(g *gocui.Gui) (*gocui.View, error) {
 
 		keybind(g, name, gocui.KeyArrowDown, gocui.ModNone, cursorDown)
 		keybind(g, name, gocui.KeyArrowUp, gocui.ModNone, cursorUp)
+		keybind(g, name, gocui.KeyBackspace2, gocui.ModNone, backSideView)
 
 		if _, err := g.SetCurrentView(name); err != nil {
 			return nil, err
@@ -178,13 +183,21 @@ func pushSideMenu(g *gocui.Gui) (*gocui.View, error) {
 }
 
 func popSideMenu(g *gocui.Gui) error {
-	top := len(sideMenuStack)
+	top := len(sideMenuStack) - 1
 	name := sideMenuStack[top]
+	g.DeleteKeybindings(name)
 	err := g.DeleteView(name)
 	if err != nil {
 		return err
 	}
 	sideMenuStack = sideMenuStack[:top]
+	currentTopView := sideMenuStack[top-1]
+	if _, err = g.SetCurrentView(currentTopView); err != nil {
+		return err
+	}
+	if _, err := g.SetViewOnTop(currentTopView); err != nil {
+		return err
+	}
 	return nil
 }
 
