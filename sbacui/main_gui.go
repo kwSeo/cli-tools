@@ -9,7 +9,10 @@ import (
 	"strconv"
 )
 
-const sideView = "side"
+const (
+	sideView = "side"
+	contentView = "content"
+)
 
 var (
 	sideMenuStack = []string{sideView}
@@ -75,8 +78,8 @@ func (ag *ActuatorGui) Layout(g *gocui.Gui) error {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
-		v.Wrap = true
-		v.Autoscroll = true
+		v.Wrap = false
+		v.Autoscroll = false
 		fmt.Fprintln(v, "this is content")
 	}
 
