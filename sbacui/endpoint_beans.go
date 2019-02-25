@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/fatih/color"
 	"github.com/jroimartin/gocui"
 	"io/ioutil"
 	"log"
@@ -66,9 +65,8 @@ func beansFunc(g *gocui.Gui, link *ActuatorLink, _ map[string]interface{}) error
 		return err
 	}
 
-	contextFont := color.New(color.FgRed, color.Bold)
 	for contextName, beans := range beans.Contexts {
-		if _, err := contextFont.Fprintln(content, contextName); err != nil {
+		if _, err := h1.Fprintln(content, contextName); err != nil {
 			log.Panicln(err)
 		}
 		for beanName, bean := range beans.Beans {
@@ -78,11 +76,11 @@ func beansFunc(g *gocui.Gui, link *ActuatorLink, _ map[string]interface{}) error
 				"\t\t\t\t%s%s\n" +
 				"\t\t\t\t%s%s\n" +
 				"\t\t\t\t%s%s\n",
-				color.CyanString(beanName),
-				color.MagentaString("Type: "), bean.Type,
-				color.MagentaString("Scope: "), bean.Scope,
-				color.MagentaString("Aliases: "), strings.Join(bean.Aliases, ", "),
-				color.MagentaString("Dependencies: "), strings.Join(bean.Dependencies, ", "),
+				h3.Sprint(beanName),
+				h5.Sprint("Type: "), bean.Type,
+				h5.Sprint("Scope: "), bean.Scope,
+				h5.Sprint("Aliases: "), strings.Join(bean.Aliases, ", "),
+				h5.Sprint("Dependencies: "), strings.Join(bean.Dependencies, ", "),
 			); err != nil {
 				return err
 			}
