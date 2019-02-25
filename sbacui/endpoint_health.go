@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/jroimartin/gocui"
+	"github.com/tidwall/pretty"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -31,9 +32,12 @@ func health(g *gocui.Gui, link *ActuatorLink, _ map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
+	prettyBody := pretty.Pretty(body)
 
 	contentV.Clear()
-	contentV.SetOrigin(0, 0)
-	fmt.Fprintln(contentV, string(body))
+	if err = contentV.SetOrigin(0, 0); err != nil {
+		return err
+	}
+	fmt.Fprintln(contentV, string(prettyBody))
 	return nil
 }

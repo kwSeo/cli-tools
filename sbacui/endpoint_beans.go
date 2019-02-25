@@ -62,6 +62,9 @@ func beansFunc(g *gocui.Gui, link *ActuatorLink, _ map[string]interface{}) error
 	}
 
 	content.Clear()
+	if err = content.SetOrigin(0, 0); err != nil {
+		return err
+	}
 
 	contextFont := color.New(color.FgRed, color.Bold)
 	for contextName, beans := range beans.Contexts {
@@ -81,7 +84,7 @@ func beansFunc(g *gocui.Gui, link *ActuatorLink, _ map[string]interface{}) error
 				color.MagentaString("Aliases: "), strings.Join(bean.Aliases, ", "),
 				color.MagentaString("Dependencies: "), strings.Join(bean.Dependencies, ", "),
 			); err != nil {
-				log.Panicln(err)
+				return err
 			}
 		}
 	}
