@@ -99,7 +99,9 @@ func (ag *ActuatorGui) selectEndpoint(g *gocui.Gui, v *gocui.View) error {
 	endpoint := ag.Actuator.Links[selected]
 
 	if endpointFunc, exist := endpointFuncMap[selected]; exist {
-		endpointFunc(g, &endpoint, map[string]interface{}{})
+		if err := endpointFunc(g, &endpoint, map[string]interface{}{}); err != nil {
+			return err
+		}
 	} else {
 		v, err := g.View("content")
 		if err != nil {
