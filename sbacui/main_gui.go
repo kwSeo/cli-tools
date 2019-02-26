@@ -137,11 +137,44 @@ func cursorDown(g *gocui.Gui, v *gocui.View) error {
 	return nil
 }
 
+func cursorLeft(g *gocui.Gui, v *gocui.View) error {
+	_, err := g.SetCurrentView(contentView)
+	return err
+}
+
+func cursorRightOnContentView(g *gocui.Gui, v *gocui.View) error {
+	_, err := g.SetCurrentView(sideView)
+	return err
+}
+
+func cursorDownOnContentView(g *gocui.Gui, v *gocui.View) error {
+	x, y := v.Origin()
+	if err := v.SetOrigin(x, y + 1); err != nil {
+		return err
+	}
+	return nil
+}
+
+func cursorUpOnContentView(g *gocui.Gui, v *gocui.View) error {
+	x, y := v.Origin()
+	if y == 0 {
+		return nil
+	}
+	if err := v.SetOrigin(x, y - 1); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (ag *ActuatorGui) keybindings(g *gocui.Gui) error {
 	keybind(g, "", gocui.KeyCtrlC, gocui.ModNone, quit)
 	keybind(g, sideView, gocui.KeyEnter, gocui.ModNone, ag.selectEndpoint)
 	keybind(g, sideView, gocui.KeyArrowDown, gocui.ModNone, cursorDown)
 	keybind(g, sideView, gocui.KeyArrowUp, gocui.ModNone, cursorUp)
+	keybind(g, sideView, gocui.KeyArrowRight, gocui.ModNone, cursorLeft)
+	keybind(g, contentView, gocui.KeyArrowLeft, gocui.ModNone, cursorRightOnContentView)
+	keybind(g, contentView, gocui.KeyArrowDown, gocui.ModNone, cursorDownOnContentView)
+	keybind(g, contentView, gocui.KeyArrowUp, gocui.ModNone, cursorUpOnContentView)
 	return nil
 }
 
